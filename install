@@ -1,0 +1,118 @@
+#!/bin/bash
+
+# Copyright (C) 2025 NEC Corporation.
+# 
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+# 
+#     http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+# git project name
+PROJECT_BASE=base-compose
+PROJECT_CONFIGURATION_COLLECTOR=configuration-collector-compose
+PROJECT_CONFIGURATION_EXPORTER=configuration-exporter-compose
+PROJECT_CONFIGURATION_MANAGER=configuration-manager-compose
+PROJECT_PERFORMANCE_COLLECTOR=performance-collector-compose
+PROJECT_PERFORMANCE_EXPORTER=performance-exporter-compose
+PROJECT_PERFORMANCE_MANAGER=performance-manager-compose
+PROJECT_MF_CORE=mf-core
+PROJECT_LAYOUT_APPLY=layout-apply-compose
+PROJECT_MIGRATION_PROCEDURE_GENERATOR=migration-procedure-generator-compose
+PROJECT_HW_CONTROL=hw-control-compose
+
+# COMPOSE_ARRAY variable is an array that stores the paths of multiple Docker Compose files.
+# It assumes that the Docker Compose files are located in the same directory.
+# If there are multiple Docker Compose files, specify the override files separated by a colon.
+COMPOSE_ARRAY=(
+	"$PROJECT_BASE/compose.yml"
+	"$PROJECT_CONFIGURATION_COLLECTOR/compose.yml"
+	"$PROJECT_CONFIGURATION_EXPORTER/compose.yml"
+	"$PROJECT_CONFIGURATION_MANAGER/compose.yml"
+	"$PROJECT_PERFORMANCE_COLLECTOR/compose.yml"
+	"$PROJECT_PERFORMANCE_EXPORTER/compose.yml"
+	"$PROJECT_PERFORMANCE_MANAGER/compose.yml"
+	"$PROJECT_LAYOUT_APPLY/compose.yml"
+	"$PROJECT_MIGRATION_PROCEDURE_GENERATOR/compose.yml"
+	"$PROJECT_HW_CONTROL/compose.yml"
+	"$PROJECT_MF_CORE/compose.prod.yaml"
+)
+
+# args up flag
+flg_up=""
+
+# docker network name
+NETWORK_NAME=cdim-net
+
+# ----------------------------
+# args
+# ----------------------------
+function usage() {
+cat <<EOF
+usage: install [option]
+The installer builds and launches CDIM.
+This command, by default, only executes the build.
+
+  option:
+  -u, --up    Build and Start.
+  -h, --help  Show and exit this usage.
+EOF
+}
+
+while [ -n "${1:-}" ]; do
+	case "$1" in
+		-h|--help) usage; exit 0;;
+		-u|--up) flg_up='on'; break;;
+		-*) echo -e 'cdim: error: Invalid option. Use "--help".'; exit 1;;
+		"") break;;
+	esac
+	shift
+done
+
+
+# ----------------------------
+# create docker network
+# ----------------------------
+if [ "$(docker network ls | grep -c "$NETWORK_NAME")" -lt 1 ]; then
+	if ! docker network create "$NETWORK_NAME"; then
+		exit 2
+	fi
+	echo "cdim: docker network created. [$NETWORK_NAME]"
+fi
+
+
+# ----------------------------
+# docker build and up
+# ----------------------------
+SCRIPT_DIR="$(cd "$(dirname "$0")" || exit; pwd)"
+cd "$SCRIPT_DIR" || exit
+
+for compose in "${COMPOSE_ARRAY[@]}"; do
+	compose_dir=$(dirname "$compose")
+	cd "$compose_dir" || exit
+
+	COMPOSE_FILE=$(basename "$compose")
+	export COMPOSE_FILE
+
+	# build ----- -----
+	if ! docker compose build; then
+ 	       exit 3
+	fi
+	echo "cdim: docker compose build done. [$compose_dir]"
+
+	# up ----- -----
+	if [ "$flg_up" == "on" ]; then
+		if ! docker compose up -d; then
+			exit 4
+		fi
+	fi
+	cd "$SCRIPT_DIR" || exit
+done
+
+exit 0

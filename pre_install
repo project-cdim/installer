@@ -1,0 +1,86 @@
+#!/bin/bash
+
+# Copyright (C) 2025 NEC Corporation.
+# 
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+# 
+#     http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+# git base url
+GIT_REPOSITORY=https://github.com/project-cdim
+
+# extension script directory
+EXTENSION_DIR=pre_install.d
+
+# git project name
+PROJECT_BASE=base-compose
+PROJECT_CONFIGURATION_COLLECTOR=configuration-collector-compose
+PROJECT_CONFIGURATION_EXPORTER=configuration-exporter-compose
+PROJECT_CONFIGURATION_MANAGER=configuration-manager-compose
+PROJECT_PERFORMANCE_COLLECTOR=performance-collector-compose
+PROJECT_PERFORMANCE_EXPORTER=performance-exporter-compose
+PROJECT_PERFORMANCE_MANAGER=performance-manager-compose
+PROJECT_MF_CORE=mf-core
+PROJECT_MF_LAYOUT=mf-layout
+PROJECT_MF_RESOURCE=mf-resource
+PROJECT_MF_USER=mf-user
+PROJECT_LAYOUT_APPLY=layout-apply-compose
+PROJECT_MIGRATION_PROCEDURE_GENERATOR=migration-procedure-generator-compose
+PROJECT_HW_CONTROL=hw-control-compose
+PROJECT_SETUP=set-up-tools
+
+# project array
+PROJECT_ARRAY=(
+	"$PROJECT_BASE"
+	"$PROJECT_CONFIGURATION_COLLECTOR"
+	"$PROJECT_CONFIGURATION_EXPORTER"
+	"$PROJECT_CONFIGURATION_MANAGER"
+	"$PROJECT_PERFORMANCE_COLLECTOR"
+	"$PROJECT_PERFORMANCE_EXPORTER"
+	"$PROJECT_PERFORMANCE_MANAGER"
+	"$PROJECT_MF_CORE"
+	"$PROJECT_MF_LAYOUT"
+	"$PROJECT_MF_RESOURCE"
+	"$PROJECT_MF_USER"
+	"$PROJECT_LAYOUT_APPLY"
+	"$PROJECT_MIGRATION_PROCEDURE_GENERATOR"
+	"$PROJECT_HW_CONTROL"
+	"$PROJECT_SETUP"
+)
+
+# ----------------------------
+# git clone
+# ----------------------------
+SCRIPT_DIR="$(cd "$(dirname "$0")" || exit; pwd)"
+cd "$SCRIPT_DIR" || exit
+
+for project in "${PROJECT_ARRAY[@]}"; do
+	if ! git clone --recurse-submodules $GIT_REPOSITORY/"$project".git; then
+		exit 31
+	fi
+	echo "cdim: git clone done. [$project]"
+done
+
+# ----------------------------
+# extension script execution
+# ----------------------------
+if [ ! -d "$EXTENSION_DIR" ]; then
+	exit 0
+fi
+find "./$EXTENSION_DIR" -maxdepth 1 -type f -executable | sort -n | while IFS= read -r scriptFile; do
+	"$scriptFile"
+	res=$?
+	if [ $res -ne 0 ]; then
+		exit $res
+	fi
+done
+
+exit 0
