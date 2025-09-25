@@ -22,7 +22,6 @@ EXTENSION_DIR=pre_install.d
 
 # git project name
 PROJECT_BASE=base-compose
-PROJECT_CONFIGURATION_COLLECTOR=configuration-collector-compose
 PROJECT_CONFIGURATION_EXPORTER=configuration-exporter-compose
 PROJECT_CONFIGURATION_MANAGER=configuration-manager-compose
 PROJECT_PERFORMANCE_COLLECTOR=performance-collector-compose
@@ -36,11 +35,12 @@ PROJECT_LAYOUT_APPLY=layout-apply-compose
 PROJECT_MIGRATION_PROCEDURE_GENERATOR=migration-procedure-generator-compose
 PROJECT_HW_CONTROL=hw-control-compose
 PROJECT_SETUP=set-up-tools
+PROJECT_ALERT_MANAGER=alert-manager-compose
+PROJECT_JOB_MANAGER=job-manager-compose
 
 # project array
 PROJECT_ARRAY=(
 	"$PROJECT_BASE"
-	"$PROJECT_CONFIGURATION_COLLECTOR"
 	"$PROJECT_CONFIGURATION_EXPORTER"
 	"$PROJECT_CONFIGURATION_MANAGER"
 	"$PROJECT_PERFORMANCE_COLLECTOR"
@@ -54,6 +54,8 @@ PROJECT_ARRAY=(
 	"$PROJECT_MIGRATION_PROCEDURE_GENERATOR"
 	"$PROJECT_HW_CONTROL"
 	"$PROJECT_SETUP"
+	"$PROJECT_ALERT_MANAGER"
+	"$PROJECT_JOB_MANAGER"
 )
 
 # ----------------------------
