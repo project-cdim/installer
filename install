@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (C) 2025 NEC Corporation.
+# Copyright (C) 2025-2026 NEC Corporation.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -22,11 +22,14 @@ PROJECT_PERFORMANCE_COLLECTOR=performance-collector-compose
 PROJECT_PERFORMANCE_EXPORTER=performance-exporter-compose
 PROJECT_PERFORMANCE_MANAGER=performance-manager-compose
 PROJECT_MF_CORE=mf-core
+PROJECT_MF_ALERT=mf-alert
 PROJECT_LAYOUT_APPLY=layout-apply-compose
 PROJECT_MIGRATION_PROCEDURE_GENERATOR=migration-procedure-generator-compose
 PROJECT_HW_CONTROL=hw-control-compose
 PROJECT_ALERT_MANAGER=alert-manager-compose
 PROJECT_JOB_MANAGER=job-manager-compose
+PROJECT_LAYOUT_DESIGN=layout-design-compose
+PROJECT_POLICY_MANAGER=policy-manager-compose
 
 # COMPOSE_ARRAY variable is an array that stores the paths of multiple Docker Compose files.
 # It assumes that the Docker Compose files are located in the same directory.
@@ -42,10 +45,15 @@ COMPOSE_ARRAY=(
 	"$PROJECT_MIGRATION_PROCEDURE_GENERATOR"
 	"$PROJECT_HW_CONTROL"
 	"$PROJECT_MF_CORE"
+	"$PROJECT_MF_ALERT"
 	"$PROJECT_ALERT_MANAGER"
 	"$PROJECT_JOB_MANAGER"
+	"$PROJECT_LAYOUT_DESIGN"
+	"$PROJECT_POLICY_MANAGER"
 )
 
+# args build flag
+flg_build=""
 # args up flag
 flg_up=""
 
@@ -59,20 +67,27 @@ function usage() {
 cat <<EOF
 usage: install [option]
 The installer builds and launches CDIM.
-This command, by default, only executes the build.
+This command, by default, displays this usage.
 
   option:
-  -u, --up    Build and Start.
-  -h, --help  Show and exit this usage.
+  -b, --build  Build.
+  -u, --up     Start.
+  -h, --help   Show and exit this usage.
 EOF
 }
+
+# Show usage if no arguments provided
+if [ $# -eq 0 ]; then
+    usage
+    exit 0
+fi
 
 while [ -n "${1:-}" ]; do
 	case "$1" in
 		-h|--help) usage; exit 0;;
-		-u|--up) flg_up='on'; break;;
+		-b|--build) flg_build='on';;
+		-u|--up) flg_up='on';;
 		-*) echo -e 'cdim: error: Invalid option. Use "--help".'; exit 1;;
-		"") break;;
 	esac
 	shift
 done
@@ -108,10 +123,12 @@ for compose_dir in "${COMPOSE_ARRAY[@]}"; do
 	fi
 
 	# build ----- -----
-	if ! docker compose build; then
- 	       exit 3
+	if [ "$flg_build" == "on" ]; then
+		if ! docker compose build; then
+			exit 3
+		fi
+		echo "cdim: docker compose build done. [$compose_dir]"
 	fi
-	echo "cdim: docker compose build done. [$compose_dir]"
 
 	# up ----- -----
 	if [ "$flg_up" == "on" ]; then

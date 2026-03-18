@@ -1,6 +1,7 @@
 # Installer
 
 The pre-installer fetches the source from the Git repository, and the installer sets up the environment.
+The post-installer configures the software after the installation is complete.
 
 ### Example Commands
 
@@ -36,21 +37,31 @@ $ ./install
 $ docker compose up -d
 ```
 
+* Finally, to run the post-installer after running the installer (including starting the Docker container):
+```
+$ ./post_install
+$ cd base-compose
+$ docker compose down gateway-dapr
+$ docker compose down gateway
+$ docker compose up -d --build
+```
+
 ## Prerequisites for Using This Tool
 
 * Assume that the source build is done with a Dockerfile.
-* The user running the pre-installer and installer should belong to the docker group or be the root user.
+* The user running the pre-installer, installer and post-installer should belong to the docker group or be the root user.
   * However, using the root user is not recommended.
 * Environment-dependent files for each component should be stored in the "environment setup" Git repository, and source files should be stored in the "source" Git repository.
 * Ensure that you can access Git.
-* The pre-installer and installer can be placed anywhere, but do not change the following structure:
+* The pre-installer, installer and post-installer can be placed anywhere, but do not change the following structure:
 ```
 <any directory>
   ├ pre_install (pre-installer)
   ├ pre_install.d/ (pre-installer extension directory)
   │   ├ extension scripts for individual environments
   │   └ config/
-  └ install (installer)
+  ├ install (installer)
+  └ post_install (post-installer)
 ```
 
 ## pre_install
@@ -62,11 +73,14 @@ Function Overview
 ## install
 
 Function Overview
-1. Create the docker network [cdim_net]
+1. Create the docker network [cdim-net]
 1. Perform docker build with the pre-cloned files
 1. Start the docker container based on the specified arguments
 * If executed without arguments, only the build is performed, and the docker container must be started manually
 
+## post_install
+Function Overview
+1. Build and start the pre-cloned "set-up-tools" with Docker
 
 ## License
 
