@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (C) 2025 NEC Corporation.
+# Copyright (C) 2025-2026 NEC Corporation.
 # 
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -17,8 +17,20 @@
 SCRIPT_DIR="$(cd "$(dirname "$0")" || exit; pwd)"
 cd "$SCRIPT_DIR" || exit
 
+set -o pipefail
+
+KEYCLOAK_URL="http://localhost:8287"
+CERT=$(curl -fsS "${KEYCLOAK_URL}/realms/CDIM/protocol/openid-connect/certs" | jq -r '.keys[] | select(.alg == "RS256") | .x5c | first') || exit 121
+openssl x509 -in <(echo -n "${CERT}" | base64 -d) -pubkey --nocert > "$SCRIPT_DIR/set-up-tools/gateway/tools/public_key.pem" || exit 121
+
 cd "$SCRIPT_DIR/set-up-tools/gateway/tools"
 chmod +x initial_setup.sh
 
 cd "$SCRIPT_DIR/set-up-tools"
-docker compose up -d --build
+docker compose up -d --build || exit 122
+docker wait gateway-set-up-tools
+
+cd "$SCRIPT_DIR/base-compose"
+docker compose down gateway-dapr
+docker compose down gateway
+docker compose up -d --build || exit 123

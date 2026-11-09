@@ -103,13 +103,43 @@ if [ "$(docker network ls | grep -c "$NETWORK_NAME")" -lt 1 ]; then
 	echo "cdim: docker network created. [$NETWORK_NAME]"
 fi
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" || exit; pwd)"
+cd "$SCRIPT_DIR" || exit
+
+
+# ----------------------------
+# generate configuration files
+# ----------------------------
+generate_configs() {
+    local cdim_env="$SCRIPT_DIR/cdim.env"
+    if [ ! -f "$cdim_env" ]; then
+        echo "error: $cdim_env not found."
+        return 1
+    fi
+    set -a; source "$cdim_env"; set +a
+
+    # Build a list of variable names defined in cdim.env
+    local subst_vars
+    subst_vars=$(grep -v '^[[:space:]]*#' "$cdim_env" | grep '=' | cut -d'=' -f1 | tr -d ' ' | sed 's/^/\$/' | tr '\n' ' ')
+
+    while IFS= read -r -d '' tmpl; do
+        local out="${tmpl%.template}"
+        if ! envsubst "$subst_vars" < "$tmpl" > "$out"; then
+            echo "error: envsubst failed for $tmpl."
+            return 1
+        fi
+        echo "generated: ${out#$SCRIPT_DIR/}"
+    done < <(find "$SCRIPT_DIR" -name "*.template" -print0)
+}
+
+if [ "$flg_build" == "on" ]; then
+	generate_configs || exit 5
+fi
+
 
 # ----------------------------
 # docker build and up
 # ----------------------------
-SCRIPT_DIR="$(cd "$(dirname "$0")" || exit; pwd)"
-cd "$SCRIPT_DIR" || exit
-
 for compose_dir in "${COMPOSE_ARRAY[@]}"; do
 	cd "$compose_dir" || exit
 
